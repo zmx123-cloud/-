@@ -1,0 +1,57 @@
+"""
+爬取豆瓣电影Top250
+"""
+
+import os
+import re
+import time
+import requests
+from bs4 import BeautifulSoup
+import xlwt
+# 请求的URL
+#url = 'https://movie.douban.com/top250'
+
+
+
+headers = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0',
+    'referer': 'https://movie.douban.com/top250'
+}# 伪装请求头
+book = xlwt.Workbook(encoding='utf-8', style_compression=0)#创建工作簿
+sheet = book.add_sheet('豆瓣电影Top250', cell_overwrite_ok=True)
+sheet.write(0, 0, '序号')
+sheet.write(0, 1, '名称')
+sheet.write(0, 2, '评分')
+sheet.write(0, 3, '国家')
+sheet.write(0, 4, '类型')
+
+
+n=1
+for i in range(0,10):
+    page=i*25
+
+    if page <= 250:
+        url=f"https://movie.douban.com/top250?start={page}&filter="
+        r = requests.get(url,headers=headers)
+        html=r.text
+        soup = BeautifulSoup(html, 'html.parser')
+        lis = soup.select("ol li")
+
+        for li in lis:
+            index = li.find('em').text
+            title = li.find('span', class_='title').text
+            rating = li.find('span', class_='rating_num').text
+            strInfo = re.search("(?<=<br/>).*?(?=<)", str(li.select_one(".bd p")), re.S | re.M).group().strip()
+            infos = strInfo.split('/')
+            year = infos[0].strip()
+            area = infos[1].strip()
+            type = infos[2].strip()
+            sheet.write(n, 0, index)
+            sheet.write(n, 1, title)
+            sheet.write(n, 2, rating)
+
+            sheet.write(n, 3, area)
+            sheet.write(n, 4, type)
+            print(n)
+            n = n + 1
+book.save(u'豆瓣最受欢迎的250部电影.xlsx')
